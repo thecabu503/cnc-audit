@@ -8,7 +8,7 @@
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
 
-  <!-- jsQR Library for High Performance WebRTC Live Scanning -->
+  <!-- jsQR Library for Fallback WebRTC Scanning -->
   <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
   <!-- Lucide Icons -->
   <script src="https://unpkg.com/lucide@latest"></script>
@@ -22,6 +22,15 @@
     }
     input:focus, select:focus, textarea:focus {
       outline: none;
+    }
+    /* Scanner laser animation */
+    @keyframes scanLaser {
+      0% { top: 10%; opacity: 0.3; }
+      50% { top: 90%; opacity: 1; }
+      100% { top: 10%; opacity: 0.3; }
+    }
+    .scan-laser {
+      animation: scanLaser 2s ease-in-out infinite;
     }
   </style>
 </head>
@@ -288,7 +297,7 @@
             </div>
           </div>
 
-          <!-- Questions 2 to 9 (Matching CNCaudit.tsx Card Layout & Exact Text) -->
+          <!-- Questions 2 to 9 -->
           <!-- 2 -->
           <div id="row_c2" class="bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-sm transition-all">
             <div class="p-4 sm:p-6 pb-3 sm:pb-4 border-b border-slate-200 flex items-center justify-between gap-2">
@@ -662,34 +671,84 @@
   </main>
 
   <!-- ========================================== -->
-  <!-- MODAL: RAPID QR SCANNER (White Theme) -->
+  <!-- MODAL: RAPID QR SCANNER (Upgraded HD Engine & Macro Focus) -->
   <!-- ========================================== -->
-  <div id="scannerModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-    <div class="bg-white border border-slate-200 rounded-3xl max-w-sm w-full p-5 space-y-4 shadow-2xl relative">
+  <div id="scannerModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/75 backdrop-blur-sm select-none">
+    <div class="bg-white border border-slate-200 rounded-3xl max-w-sm w-full p-4 sm:p-5 space-y-4 shadow-2xl relative">
+      
+      <!-- Modal Header -->
       <div class="flex items-center justify-between border-b border-slate-200 pb-3">
         <div class="flex items-center gap-2">
-          <i data-lucide="camera" class="w-5 h-5 text-blue-600"></i>
-          <span class="font-bold text-sm text-slate-900">สแกน Label หน้างาน</span>
+          <div class="w-7 h-7 rounded-lg bg-blue-100 flex items-center justify-center text-blue-600">
+            <i data-lucide="scan" class="w-4 h-4"></i>
+          </div>
+          <div>
+            <h3 class="font-bold text-sm text-slate-900 leading-tight">สแกน Label หน้างาน</h3>
+            <span class="text-[10px] text-blue-600 font-medium">HD Auto-Focus + ROI Engine</span>
+          </div>
         </div>
-        <button type="button" id="btnCloseScan" class="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100">
+        <button type="button" id="btnCloseScan" class="p-1.5 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition">
           <i data-lucide="x" class="w-5 h-5"></i>
         </button>
       </div>
 
       <!-- Live Video Frame -->
-      <div class="relative overflow-hidden rounded-2xl border-2 border-blue-500 bg-black aspect-square max-h-72 mx-auto">
+      <div class="relative overflow-hidden rounded-2xl border-2 border-blue-500 bg-black aspect-square max-h-72 mx-auto shadow-inner">
         <video id="liveVideo" class="w-full h-full object-cover" playsinline autoplay muted></video>
         <canvas id="qrCanvas" class="hidden"></canvas>
         
-        <!-- Crosshair Reticle -->
-        <div class="absolute inset-0 border-2 border-dashed border-emerald-400 m-8 rounded-xl pointer-events-none flex items-center justify-center">
-          <span class="text-[10px] bg-black/70 text-white font-mono px-2 py-0.5 rounded">เล็ง QR CODE ที่นี่</span>
+        <!-- Viewfinder Reticle with Laser Beam -->
+        <div class="absolute inset-0 flex items-center justify-center pointer-events-none p-6">
+          <div class="relative w-full h-full border-2 border-emerald-400 rounded-2xl shadow-[0_0_15px_rgba(52,211,153,0.3)] flex items-center justify-center">
+            <!-- Corner Accents -->
+            <div class="absolute -top-1 -left-1 w-4 h-4 border-t-4 border-l-4 border-emerald-400 rounded-tl"></div>
+            <div class="absolute -top-1 -right-1 w-4 h-4 border-t-4 border-r-4 border-emerald-400 rounded-tr"></div>
+            <div class="absolute -bottom-1 -left-1 w-4 h-4 border-b-4 border-l-4 border-emerald-400 rounded-bl"></div>
+            <div class="absolute -bottom-1 -right-1 w-4 h-4 border-b-4 border-r-4 border-emerald-400 rounded-br"></div>
+            
+            <!-- Laser Scan Line -->
+            <div class="absolute left-2 right-2 h-0.5 bg-gradient-to-r from-transparent via-emerald-400 to-transparent shadow-[0_0_8px_#34d399] scan-laser"></div>
+
+            <span class="text-[10px] bg-black/75 text-emerald-300 font-mono px-2 py-0.5 rounded-full border border-emerald-400/40">
+              เล็ง QR CODE ในกรอบนี้
+            </span>
+          </div>
+        </div>
+
+        <!-- Quick Controls inside camera (Zoom & Torch) -->
+        <div class="absolute bottom-3 left-3 right-3 flex justify-between items-center pointer-events-auto">
+          <!-- Zoom Toggle Button -->
+          <button 
+            type="button" 
+            id="btnToggleZoom" 
+            class="hidden bg-black/60 backdrop-blur-md text-white border border-white/20 text-[11px] font-mono font-bold px-3 py-1.5 rounded-full hover:bg-black/80 active:scale-95 transition flex items-center gap-1"
+          >
+            <i data-lucide="zoom-in" class="w-3.5 h-3.5"></i>
+            <span id="zoomText">1.0x</span>
+          </button>
+
+          <!-- Torch Button -->
+          <button 
+            type="button" 
+            id="btnToggleTorch" 
+            class="hidden bg-black/60 backdrop-blur-md text-white border border-white/20 text-[11px] font-bold px-3 py-1.5 rounded-full hover:bg-black/80 active:scale-95 transition flex items-center gap-1"
+          >
+            <i data-lucide="zap" class="w-3.5 h-3.5"></i>
+            <span id="torchText">เปิดไฟ</span>
+          </button>
         </div>
       </div>
 
-      <p class="text-center text-[11px] text-slate-500">
-        ส่องกล้องไปที่ Label งาน ระบบจะอ่าน Part No. และ Lot No. อัตโนมัติ
-      </p>
+      <!-- Distance and Sharpness Guide -->
+      <div class="bg-blue-50 border border-blue-200 rounded-xl p-2.5 text-center">
+        <p class="text-xs font-bold text-blue-900 leading-snug">
+          💡 คำแนะนำ: รักษาระยะห่าง 15 - 25 ซม.
+        </p>
+        <p class="text-[11px] text-blue-700 mt-0.5">
+          หาก QR มีขนาดเล็ก แนะนำกดปุ่ม <span class="font-bold underline">ซูม 2x</span> แทนการเอาจ่อใกล้จนหลุดโฟกัส
+        </p>
+      </div>
+
     </div>
   </div>
 
@@ -701,7 +760,7 @@
     lucide.createIcons();
     document.getElementById("finishDate").valueAsDate = new Date();
 
-    // Populate 24-Hour Time Selectors (00:00 - 23:59) — ต้องเลือกเองทุกช่อง
+    // Populate 24-Hour Time Selectors (00:00 - 23:59)
     const hourSel = document.getElementById("finishHour");
     const minSel = document.getElementById("finishMinute");
     let hourHtml = `<option value="" disabled selected>ชม.</option>`;
@@ -729,7 +788,7 @@
     hourSel.addEventListener("change", syncFinishTime);
     minSel.addEventListener("change", syncFinishTime);
 
-    // Populate Dropdown Options (เริ่มต้นเป็น "เลือกจำนวน" ทุกช่อง)
+    // Populate Dropdown Options
     function populateSelect(id, maxVal, placeholderText) {
       const sel = document.getElementById(id);
       let html = "";
@@ -742,18 +801,12 @@
       sel.innerHTML = html;
     }
 
-    // 10.3 งานในตะกร้าไม่เกิน 50 ชิ้น (0 - 50) — ต้องเลือกจำนวนทุกช่อง
     populateSelect("basketCut", 50, "เลือกจำนวน");
     populateSelect("basketFull", 50, "เลือกจำนวน");
-
-    // 10.4 งานหน้าบอร์ดไม่เกิน 10 ชิ้น (0 - 10) — ต้องเลือกจำนวนทุกช่อง
     populateSelect("boardCut", 10, "เลือกจำนวน");
     populateSelect("boardFull", 10, "เลือกจำนวน");
-
-    // 10.6 Monitor Count (B) เริ่มต้นเป็น "เลือกจำนวน"
     populateSelect("monitorB", 120, "เลือกจำนวน");
 
-    // Web App URL Endpoint (Google Apps Script)
     const GAS_ENDPOINT_URL = "https://script.google.com/macros/s/AKfycbzKRHb6YZa8cMH0P-9H-jTXiTNgcDy_W-YR7Z9JXcoBJ2Hd9xLbQ5okHoFZB6ZzjmGk/exec";
 
     // Helper: Mark/Clear Field Error
@@ -774,7 +827,7 @@
       }
     });
 
-    // Strict Section 1 Validation (ข้อมูลทั่วไปครบทุกช่องก่อนไปต่อ)
+    // Strict Section 1 Validation
     function validateSection1(showAlert = true) {
       const fields = [
         { id: "machineId", label: "Machine Selection (หมายเลขเครื่องจักร)" },
@@ -815,27 +868,15 @@
       return true;
     }
 
-    // 2. State & Button Checklists (เริ่มต้นว่างทั้งหมด ต้องกดเลือกทุกข้อ)
+    // 2. State & Button Checklists
     const checklistOrder = [
       "c1_1", "c1_2", "c1_3", "c1_4", "c1_5", "c1_6",
       "c2", "c3", "c4", "c5", "c6", "c7", "c8", "c9"
     ];
 
     const checklistAnswers = {
-      c1_1: "",
-      c1_2: "",
-      c1_3: "",
-      c1_4: "",
-      c1_5: "",
-      c1_6: "",
-      c2: "",
-      c3: "",
-      c4: "",
-      c5: "",
-      c6: "",
-      c7: "",
-      c8: "",
-      c9: ""
+      c1_1: "", c1_2: "", c1_3: "", c1_4: "", c1_5: "", c1_6: "",
+      c2: "", c3: "", c4: "", c5: "", c6: "", c7: "", c8: "", c9: ""
     };
 
     function markQuestionRowError(key, isError) {
@@ -878,7 +919,6 @@
     }
     refreshChecklistUI();
 
-    // Strict Section 2 Validation (ห้ามข้ามข้อ และต้องตอบครบทุกข้อก่อนไปส่วนที่ 3)
     function validateSection2(upToKey = null, showAlert = true) {
       let firstMissingEl = null;
       const targetIdx = upToKey ? checklistOrder.indexOf(upToKey) : checklistOrder.length;
@@ -921,13 +961,10 @@
 
     document.querySelectorAll(".btn-check").forEach(btn => {
       btn.addEventListener("click", () => {
-        // ต้องกรอก Section 1 ให้ครบก่อน
         if (!validateSection1(true)) return;
-
         const name = btn.dataset.name;
         const val = btn.dataset.val;
 
-        // ห้ามข้ามข้อก่อนหน้าใน Section 2
         if (!validateSection2(name, true)) return;
 
         checklistAnswers[name] = val;
@@ -963,7 +1000,7 @@
       refreshChecklistUI();
     });
 
-    // 10.1 & 10.2 Toggles (เริ่มต้นยังไม่ติ๊ก ต้องกดยืนยันทุกข้อ)
+    // 10.1 & 10.2 Toggles
     let chk10_1 = false;
     let chk10_2 = false;
 
@@ -1033,7 +1070,7 @@
       renderChk10_2(false);
     });
 
-    // 3. Tally & Auto Calculation (Total A vs Monitor B — No auto-sync of Monitor B)
+    // 3. Tally & Auto Calculation
     function calculateCounts() {
       const bCutRaw = document.getElementById("basketCut").value;
       const bFullRaw = document.getElementById("basketFull").value;
@@ -1083,7 +1120,6 @@
       updateSummary();
     }
 
-    // Strict Section 3 Gate on Dropdown Focus/Change
     document.querySelectorAll(".tally-select, #monitorB").forEach(el => {
       el.addEventListener("mousedown", (e) => {
         if (!validateSection1(true) || !validateSection2(null, true)) {
@@ -1108,7 +1144,6 @@
       el.addEventListener("change", calculateCounts);
     });
 
-    // Strict Section 3 Validation (ครบทุกช่องในข้อ 10 ก่อนไปข้อ 4)
     function validateSection3(showAlert = true) {
       if (!chk10_1) {
         renderChk10_1(true);
@@ -1190,7 +1225,7 @@
       return true;
     }
 
-    // 4. Discard Card Toggle (ต้องกรอก Section 1, 2, 3 ครบทุกช่องก่อนจึงจะกดยืนยันทิ้งชิ้นงานได้)
+    // 4. Discard Card Toggle
     let isDiscarded = false;
     const discardCard = document.getElementById("discardCard");
     const discardIconCircle = document.getElementById("discardIconCircle");
@@ -1255,69 +1290,240 @@
       document.getElementById(id).addEventListener("input", updateSummary);
     });
 
-    // 6. Camera Scanner (WebRTC + jsQR)
+    // ========================================================
+    // 6. UPGRADED RAPID SCANNER (High Res + BarcodeDetector + ROI Crop + Zoom & Torch)
+    // ========================================================
     const modal = document.getElementById("scannerModal");
     const video = document.getElementById("liveVideo");
     const canvas = document.getElementById("qrCanvas");
-    const ctx = canvas.getContext("2d");
+    const ctx = canvas.getContext("2d", { willReadFrequently: true });
+    const btnToggleZoom = document.getElementById("btnToggleZoom");
+    const zoomText = document.getElementById("zoomText");
+    const btnToggleTorch = document.getElementById("btnToggleTorch");
+    const torchText = document.getElementById("torchText");
+
     let stream = null;
     let animId = null;
+    let currentZoom = 1.0;
+    let isTorchOn = false;
+    let videoTrack = null;
+    let trackCapabilities = {};
+    let nativeBarcodeDetector = null;
+    let isScanning = false;
+
+    // Check if browser has hardware-accelerated Native BarcodeDetector API
+    if ('BarcodeDetector' in window) {
+      BarcodeDetector.getSupportedFormats()
+        .then(formats => {
+          if (formats.includes('qr_code')) {
+            nativeBarcodeDetector = new BarcodeDetector({ formats: ['qr_code'] });
+          }
+        })
+        .catch(() => { nativeBarcodeDetector = null; });
+    }
+
+    // Audio Feedback (Beep on Scan)
+    function playBeep() {
+      try {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(987.77, audioCtx.currentTime); // B5 note
+        gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.15);
+      } catch (e) {}
+    }
 
     document.getElementById("btnOpenScan").addEventListener("click", async () => {
       modal.classList.remove("hidden");
+      lucide.createIcons();
       try {
-        stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: { ideal: "environment" }, width: { ideal: 640 }, height: { ideal: 640 } }
-        });
+        // Request HD stream with continuous auto-focus to prevent close-up blur
+        const constraints = {
+          video: {
+            facingMode: { ideal: "environment" },
+            width: { ideal: 1920, min: 1280 },
+            height: { ideal: 1080, min: 720 },
+            advanced: [
+              { focusMode: "continuous" }
+            ]
+          },
+          audio: false
+        };
+
+        try {
+          stream = await navigator.mediaDevices.getUserMedia(constraints);
+        } catch (errFallback) {
+          // Fallback if 1080p is rejected by older camera driver
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: { ideal: "environment" } },
+            audio: false
+          });
+        }
+
         video.srcObject = stream;
         video.setAttribute("playsinline", true);
         await video.play();
+
+        // Inspect hardware capabilities (Zoom & Torch)
+        videoTrack = stream.getVideoTracks()[0];
+        trackCapabilities = videoTrack.getCapabilities ? videoTrack.getCapabilities() : {};
+
+        // Auto apply continuous focus if supported
+        if (trackCapabilities.focusMode && trackCapabilities.focusMode.includes('continuous')) {
+          try {
+            await videoTrack.applyConstraints({ advanced: [{ focusMode: 'continuous' }] });
+          } catch(e) {}
+        }
+
+        // Setup Zoom button if device supports hardware zoom
+        if (trackCapabilities.zoom) {
+          btnToggleZoom.classList.remove("hidden");
+          currentZoom = trackCapabilities.zoom.min || 1.0;
+          zoomText.innerText = `${currentZoom.toFixed(1)}x`;
+        } else {
+          btnToggleZoom.classList.add("hidden");
+        }
+
+        // Setup Torch button if device supports flashlight
+        if (trackCapabilities.torch) {
+          btnToggleTorch.classList.remove("hidden");
+          isTorchOn = false;
+          torchText.innerText = "เปิดไฟ";
+        } else {
+          btnToggleTorch.classList.add("hidden");
+        }
+
+        isScanning = true;
         scanLoop();
       } catch (err) {
-        alert("กรุณาอนุญาตสิทธิ์การใช้กล้อง (Camera Permission): " + err.message);
+        alert("ไม่สามารถเปิดกล้องได้: " + err.message + "\n(กรุณาอนุญาตสิทธิ์การเข้าถึงกล้องถ่ายภาพ)");
         closeScanModal();
       }
     });
 
+    // Toggle Zoom (1.0x -> 2.0x -> 1.0x)
+    btnToggleZoom.addEventListener("click", async () => {
+      if (!videoTrack || !trackCapabilities.zoom) return;
+      const minZ = trackCapabilities.zoom.min || 1.0;
+      const maxZ = trackCapabilities.zoom.max || 2.0;
+      const targetZoom = (currentZoom < 1.8) ? Math.min(2.0, maxZ) : minZ;
+      try {
+        await videoTrack.applyConstraints({ advanced: [{ zoom: targetZoom }] });
+        currentZoom = targetZoom;
+        zoomText.innerText = `${currentZoom.toFixed(1)}x`;
+      } catch (e) {
+        console.warn("Zoom constraint error:", e);
+      }
+    });
+
+    // Toggle Torch (Flashlight)
+    btnToggleTorch.addEventListener("click", async () => {
+      if (!videoTrack || !trackCapabilities.torch) return;
+      try {
+        isTorchOn = !isTorchOn;
+        await videoTrack.applyConstraints({ advanced: [{ torch: isTorchOn }] });
+        torchText.innerText = isTorchOn ? "ปิดไฟ" : "เปิดไฟ";
+      } catch (e) {
+        console.warn("Torch constraint error:", e);
+      }
+    });
+
     function closeScanModal() {
+      isScanning = false;
+      if (animId) cancelAnimationFrame(animId);
       if (stream) {
         stream.getTracks().forEach(t => t.stop());
         stream = null;
       }
-      if (animId) cancelAnimationFrame(animId);
+      videoTrack = null;
       modal.classList.add("hidden");
     }
 
     document.getElementById("btnCloseScan").addEventListener("click", closeScanModal);
 
-    function scanLoop() {
-      if (video.readyState === video.HAVE_ENOUGH_DATA) {
-        canvas.height = video.videoHeight;
-        canvas.width = video.videoWidth;
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    // High performance scan loop:
+    // 1. Try native BarcodeDetector directly from Video element (extremely fast & sharp)
+    // 2. Fallback to jsQR by cropping Region of Interest (ROI) centered to the viewfinder
+    let lastScanTime = 0;
+    async function scanLoop(timestamp) {
+      if (!isScanning) return;
 
-        const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        if (window.jsQR) {
-          const code = jsQR(imgData.data, imgData.width, imgData.height, { inversionAttempts: "dontInvert" });
-          if (code && code.data) {
-            handleDecodedQR(code.data);
-            closeScanModal();
-            return;
+      if (video.readyState === video.HAVE_ENOUGH_DATA) {
+        // Throttle slightly to ~20 scans/sec to save CPU while keeping instant responsiveness
+        if (!lastScanTime || timestamp - lastScanTime > 45) {
+          lastScanTime = timestamp;
+
+          // METHOD 1: Native BarcodeDetector (Chrome / Android / modern browsers)
+          if (nativeBarcodeDetector) {
+            try {
+              const barcodes = await nativeBarcodeDetector.detect(video);
+              if (barcodes && barcodes.length > 0 && barcodes[0].rawValue) {
+                handleDecodedQR(barcodes[0].rawValue);
+                closeScanModal();
+                return;
+              }
+            } catch (errDetect) {}
+          }
+
+          // METHOD 2: jsQR with Center Crop (ROI)
+          // Rather than feeding entire frame or downscaling to blurry 640,
+          // we crop the center 65% area where the reticle sits at 1:1 pixel resolution
+          if (window.jsQR) {
+            const vWidth = video.videoWidth;
+            const vHeight = video.videoHeight;
+            const cropRatio = 0.65;
+            const roiSize = Math.floor(Math.min(vWidth, vHeight) * cropRatio);
+            const startX = Math.floor((vWidth - roiSize) / 2);
+            const startY = Math.floor((vHeight - roiSize) / 2);
+
+            canvas.width = roiSize;
+            canvas.height = roiSize;
+            ctx.drawImage(video, startX, startY, roiSize, roiSize, 0, 0, roiSize, roiSize);
+
+            const imgData = ctx.getImageData(0, 0, roiSize, roiSize);
+            const code = jsQR(imgData.data, roiSize, roiSize, { inversionAttempts: "attemptBoth" });
+
+            if (code && code.data) {
+              handleDecodedQR(code.data);
+              closeScanModal();
+              return;
+            }
           }
         }
       }
+
       animId = requestAnimationFrame(scanLoop);
     }
 
     function handleDecodedQR(text) {
-      const parts = text.split(",");
+      playBeep();
+      if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
+
+      // รองรับทั้ง Comma (,) Pipe (|) หรือ Newline (\n) ในการแยก Part No. กับ Lot No.
       let pNo = "";
       let lNo = "";
+
+      const cleanText = text.replace(/\r/g, "").trim();
+      let parts = [];
+      if (cleanText.includes(",")) {
+        parts = cleanText.split(",");
+      } else if (cleanText.includes("|")) {
+        parts = cleanText.split("|");
+      } else if (cleanText.includes("\n")) {
+        parts = cleanText.split("\n");
+      }
+
       if (parts.length >= 2) {
         pNo = parts[0].trim();
         lNo = parts[1].trim();
       } else {
-        lNo = text.trim();
+        lNo = cleanText;
       }
 
       if (pNo) document.getElementById("partNo").value = pNo;
@@ -1330,11 +1536,10 @@
       }
 
       document.getElementById("scanSuccessPill").classList.remove("hidden");
-      if (navigator.vibrate) navigator.vibrate(100);
       updateSummary();
     }
 
-    // 7. Form Submission to Google Apps Script -> Reload back to top of first page
+    // 7. Form Submission to Google Apps Script
     document.getElementById("auditForm").addEventListener("submit", function(e) {
       e.preventDefault();
 
