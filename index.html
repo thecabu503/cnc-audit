@@ -5,24 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>CNC Re-setting Machine Audit</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- jsQR Engine for real-time & photo scanning -->
+  <!-- jsQR Engine for real-time camera scanning -->
   <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
-    @keyframes focusPing {
-      0% { transform: translate(-50%, -50%) scale(1.3); opacity: 1; }
-      100% { transform: translate(-50%, -50%) scale(0.85); opacity: 0; }
-    }
-    .focus-ring {
-      position: absolute;
-      width: 64px;
-      height: 64px;
-      border: 2px solid #fde047;
-      border-radius: 9999px;
-      pointer-events: none;
-      animation: focusPing 0.6s ease-out forwards;
-    }
   </style>
 </head>
 <body class="bg-slate-100 text-slate-800 pb-24">
@@ -36,87 +23,38 @@
         <p class="text-xs text-blue-200">E&H Precision (Thailand)</p>
       </div>
     </div>
-    <span class="text-xs bg-blue-800 border border-blue-600 px-2 py-1 rounded-md text-blue-100">Pro Macro Scanner</span>
+    <span class="text-xs bg-blue-800 border border-blue-600 px-2 py-1 rounded-md text-blue-100">Live Scanner v2.2</span>
   </header>
 
   <main class="max-w-lg mx-auto p-3 space-y-3">
 
-    <!-- Live Camera Scanner Box -->
+    <!-- Live Camera Scanner Box (Works 100% on GitHub Pages HTTPS) -->
     <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200">
-      <div class="flex items-center justify-between gap-2">
+      <div class="flex items-center justify-between">
         <div class="flex items-center gap-2">
-          <i data-lucide="qr-code" class="w-5 h-5 text-blue-600 shrink-0"></i>
+          <i data-lucide="qr-code" class="w-5 h-5 text-blue-600"></i>
           <div>
-            <h3 class="font-semibold text-sm text-slate-700">สแกน Label หน้างาน</h3>
-            <p class="text-[11px] text-slate-400">ถอยห่าง 20-25 ซม. แล้วซูม 2x จะโฟกัสชัดกว่าจ่อใกล้</p>
+            <h3 class="font-semibold text-sm text-slate-700">สแกน Label หน้างาน (ถ้ามี)</h3>
+            <p class="text-[11px] text-slate-400">สแกนแยกอัตโนมัติ หรือพิมพ์/แก้ไขเองด้านล่างได้</p>
           </div>
         </div>
         
-        <button id="btnToggleScan" type="button" class="bg-blue-600 hover:bg-blue-700 active:scale-95 text-white text-xs font-semibold px-3.5 py-2 rounded-xl flex items-center gap-1.5 shadow-sm transition shrink-0">
+        <button id="btnToggleScan" type="button" class="bg-blue-600 hover:bg-blue-700 active:scale-95 text-white text-xs font-semibold px-4 py-2 rounded-xl flex items-center gap-1.5 shadow-sm transition">
           <i data-lucide="camera" class="w-4 h-4"></i>
           <span id="scanBtnText">เปิดกล้องสแกน</span>
         </button>
       </div>
 
-      <!-- ปุ่มสำรอง: ใช้แอปกล้องติดเครื่องถ่ายสแกน (แก้ปัญหากล้องเบราว์เซอร์ไม่โฟกัสได้ 100%) -->
-      <div class="mt-2.5 pt-2.5 border-t border-slate-100 flex items-center justify-between">
-        <span class="text-[11px] text-slate-500">กล้องไม่โฟกัส / ป้ายเล็กมาก?</span>
-        <label for="nativeCameraInput" class="cursor-pointer bg-slate-100 hover:bg-slate-200 active:scale-95 text-slate-700 text-[11px] font-semibold px-3 py-1.5 rounded-lg flex items-center gap-1.5 border border-slate-300 transition">
-          <i data-lucide="aperture" class="w-3.5 h-3.5 text-blue-600"></i>
-          <span>ถ่ายรูปสแกน (โหมดกล้องมือถือ)</span>
-        </label>
-        <input id="nativeCameraInput" type="file" accept="image/*" capture="environment" class="hidden">
-      </div>
-
-      <!-- Live Video Viewer + Lens, Focus, Zoom & Torch Controls -->
-      <div id="scannerWrapper" class="hidden mt-3 space-y-2">
-
-        <!-- ตัวเลือกสลับเลนส์กล้อง (แสดงเมื่อมีกล้องมากกว่า 1 ตัว) -->
-        <div id="lensSelectorBox" class="hidden bg-slate-50 px-3 py-2 rounded-xl border border-slate-200 flex items-center gap-2">
-          <i data-lucide="switch-camera" class="w-4 h-4 text-blue-600 shrink-0"></i>
-          <span class="text-[11px] font-semibold text-slate-600 shrink-0">เลนส์:</span>
-          <select id="cameraSelect" class="w-full bg-white border border-slate-300 rounded-lg px-2 py-1 text-xs text-slate-700 outline-none"></select>
-        </div>
-
-        <div id="scannerContainer" class="relative overflow-hidden rounded-xl border-2 border-blue-500 bg-black aspect-square max-h-72 mx-auto cursor-pointer select-none">
-          <video id="liveVideo" class="w-full h-full object-cover origin-center transition-transform duration-150" playsinline autoplay muted></video>
-          <canvas id="qrCanvas" class="hidden"></canvas>
-          
-          <!-- กรอบเล็ง QR Code -->
-          <div class="absolute inset-0 border-2 border-dashed border-emerald-400 m-8 rounded-xl pointer-events-none flex flex-col items-center justify-between p-2">
-            <span class="text-[10px] bg-black/70 text-emerald-300 px-2.5 py-0.5 rounded-full">ถือห่าง 20-25 ซม. (แตะจอเพื่อโฟกัสใหม่)</span>
-            <span class="text-[11px] bg-black/70 text-white px-2.5 py-1 rounded-lg">วาง QR Code ในกรอบนี้</span>
-          </div>
-
-          <!-- ปุ่มไฟฉาย (แสดงเมื่อกล้องรองรับ) -->
-          <button id="btnTorch" type="button" class="hidden absolute top-2.5 right-2.5 bg-black/60 hover:bg-black/80 text-yellow-300 p-2 rounded-full border border-white/20 shadow z-10">
-            <i data-lucide="zap" class="w-4 h-4"></i>
-          </button>
-        </div>
-
-        <!-- แถบควบคุมการซูม -->
-        <div class="bg-slate-50 px-3 py-2 rounded-xl border border-slate-200 flex items-center gap-3">
-          <i data-lucide="zoom-in" class="w-4 h-4 text-blue-600 shrink-0"></i>
-          <span class="text-[11px] font-semibold text-slate-600 shrink-0">ซูมขยาย:</span>
-          <input id="zoomSlider" type="range" min="1" max="3" step="0.25" value="2" class="w-full accent-blue-600 h-1.5 bg-slate-200 rounded-lg cursor-pointer">
-          <span id="zoomValueText" class="text-xs font-bold text-blue-700 w-9 text-right">2.0x</span>
-        </div>
-
-        <!-- แถบปรับระยะโฟกัสมือ (แสดงอัตโนมัติเฉพาะเครื่องที่รองรับ Manual Focus Distance) -->
-        <div id="manualFocusBox" class="hidden bg-amber-50 px-3 py-2 rounded-xl border border-amber-200 space-y-1.5">
-          <div class="flex items-center justify-between">
-            <span class="text-[11px] font-semibold text-amber-900 flex items-center gap-1">
-              <i data-lucide="focus" class="w-3.5 h-3.5 text-amber-700"></i> ปรับโฟกัสมือ (กรณีออโต้ไม่จับ)
-            </span>
-            <button id="btnAutoFocusReset" type="button" class="text-[10px] bg-white border border-amber-300 text-amber-800 px-2 py-0.5 rounded-md font-semibold">
-              กลับเป็น Auto
-            </button>
-          </div>
-          <input id="focusSlider" type="range" min="0" max="1" step="0.01" value="0.2" class="w-full accent-amber-600 h-1.5 bg-amber-200 rounded-lg cursor-pointer">
+      <!-- Live Video Viewer -->
+      <div id="scannerContainer" class="hidden mt-3 relative overflow-hidden rounded-xl border-2 border-blue-500 bg-black aspect-square max-h-72 mx-auto">
+        <video id="liveVideo" class="w-full h-full object-cover" playsinline autoplay muted></video>
+        <canvas id="qrCanvas" class="hidden"></canvas>
+        <div class="absolute inset-0 border-2 border-dashed border-emerald-400 m-8 rounded-lg pointer-events-none flex items-center justify-center">
+          <span class="text-[11px] bg-black/60 text-white px-2 py-1 rounded">วาง QR Code ในกรอบนี้</span>
         </div>
       </div>
 
-      <!-- Scan Badge Status -->
+      <!-- Scan Badge Success -->
       <div id="scanBadge" class="hidden mt-3 p-2.5 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-xs flex items-center gap-2">
         <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-600 shrink-0"></i>
         <span id="scanBadgeText">สแกนสำเร็จ: แยกข้อมูลลงช่องแล้ว</span>
@@ -142,19 +80,42 @@
             </select>
           </div>
           <div>
-            <label class="block text-xs font-medium text-slate-600 mb-1">รหัสช่าง Technician *</label>
-            <input type="number" id="techId" required placeholder="เช่น 1356" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-xs outline-none">
+            <label for="techId" class="block text-xs font-medium text-slate-600 mb-1">รหัสช่าง Technician *</label>
+            <div class="relative flex items-center">
+              <input type="text" id="techId" required placeholder="เช่น 1356 หรือ V11804" class="w-full bg-white border border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 rounded-xl p-2.5 pr-10 text-xs font-medium outline-none transition">
+              <button type="button" id="btnPrefixV" title="กดเติมตัว V นำหน้า" class="absolute right-1.5 bg-blue-50 hover:bg-blue-100 active:scale-95 text-blue-700 border border-blue-200 font-bold text-[10px] px-2 py-1 rounded-lg transition">+V</button>
+            </div>
           </div>
         </div>
 
         <div>
-          <label class="block text-xs font-medium text-slate-600 mb-1">Part No. *</label>
-          <input type="text" id="partNo" required placeholder="เช่น 3703-K350-0000" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-xs font-mono font-medium text-blue-900 outline-none">
+          <div class="flex items-center justify-between mb-1">
+            <label for="partNo" class="block text-xs font-medium text-slate-600">Part No.</label>
+            <span class="text-[10px] text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded font-medium flex items-center gap-1">
+              <i data-lucide="pencil" class="w-2.5 h-2.5"></i> พิมพ์/แก้ไขเองได้
+            </span>
+          </div>
+          <div class="relative flex items-center">
+            <input type="text" id="partNo" placeholder="สแกน QR หรือพิมพ์เอง เช่น 3703-K350-0000" class="w-full bg-white border border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 rounded-xl p-2.5 pr-8 text-xs font-mono font-medium text-blue-900 outline-none transition">
+            <button type="button" id="btnClearPart" title="ล้างข้อมูลช่อง Part No." class="hidden absolute right-2 text-slate-400 hover:text-slate-600 p-1">
+              <i data-lucide="x" class="w-3.5 h-3.5"></i>
+            </button>
+          </div>
         </div>
 
         <div>
-          <label class="block text-xs font-medium text-slate-600 mb-1">Lot No. *</label>
-          <input type="text" id="lotNo" required placeholder="เช่น K10-2605-014" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-xs font-mono font-medium text-blue-900 outline-none">
+          <div class="flex items-center justify-between mb-1">
+            <label for="lotNo" class="block text-xs font-medium text-slate-600">Lot No.</label>
+            <span class="text-[10px] text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded font-medium flex items-center gap-1">
+              <i data-lucide="pencil" class="w-2.5 h-2.5"></i> พิมพ์/แก้ไขเองได้
+            </span>
+          </div>
+          <div class="relative flex items-center">
+            <input type="text" id="lotNo" placeholder="สแกน QR หรือพิมพ์เอง เช่น K10-2605-014" class="w-full bg-white border border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 rounded-xl p-2.5 pr-8 text-xs font-mono font-medium text-blue-900 outline-none transition">
+            <button type="button" id="btnClearLot" title="ล้างข้อมูลช่อง Lot No." class="hidden absolute right-2 text-slate-400 hover:text-slate-600 p-1">
+              <i data-lucide="x" class="w-3.5 h-3.5"></i>
+            </button>
+          </div>
         </div>
 
         <div>
@@ -253,7 +214,7 @@
               <option value="ทิ้งงานแล้ว">ทิ้งงานแล้ว</option>
               <option value="ยังไม่ทิ้งงาน">ยังไม่ทิ้งงาน</option>
             </select>
-            <input type="number" id="notEqualAuditor" placeholder="รหัส Auditor *" class="bg-white border border-amber-300 rounded-lg p-1.5 text-xs">
+            <input type="text" id="notEqualAuditor" placeholder="รหัส Auditor *" class="bg-white border border-amber-300 rounded-lg p-1.5 text-xs">
           </div>
         </div>
       </div>
@@ -338,7 +299,7 @@
       <!-- Section 4: ผู้ตรวจ Audit -->
       <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200 space-y-2.5">
         <label class="block text-xs font-medium text-slate-600 mb-1">รหัสหัวหน้างาน Audit *</label>
-        <input type="number" id="auditorId" required placeholder="เช่น 1294" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-xs outline-none">
+        <input type="text" id="auditorId" required placeholder="เช่น 1294 หรือ D020" class="w-full bg-white border border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 rounded-xl p-2.5 text-xs outline-none transition">
       </div>
 
       <!-- Submit Button -->
@@ -353,305 +314,62 @@
   <script>
     lucide.createIcons();
 
+    // Web App URL สำหรับส่งข้อมูลเข้า Google Sheets (URL ที่คุณ Deploy ไว้)
     const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz7o5gWLlzjNaSGTsMlPScpIXgcOUv_k4u8U2KhjmvVuGnHbHNRs8TR34T4p7DD1RQj/exec";
 
-    // =========================================================================
-    // 1. ระบบกล้อง Multi-Lens + Tap-to-Focus + Manual Focus + Native Photo Fallback
-    // =========================================================================
+    // 1. ระบบกล้องสด WebRTC Direct (ทำงานได้ 100% บน GitHub Pages HTTPS)
     const video = document.getElementById("liveVideo");
-    const scannerContainer = document.getElementById("scannerContainer");
     const canvasElement = document.getElementById("qrCanvas");
-    const canvas = canvasElement.getContext("2d", { willReadFrequently: true });
-    const scannerWrapper = document.getElementById("scannerWrapper");
+    const canvas = canvasElement.getContext("2d");
+    const container = document.getElementById("scannerContainer");
     const btnText = document.getElementById("scanBtnText");
-    const zoomSlider = document.getElementById("zoomSlider");
-    const zoomValueText = document.getElementById("zoomValueText");
-    const btnTorch = document.getElementById("btnTorch");
-    const lensSelectorBox = document.getElementById("lensSelectorBox");
-    const cameraSelect = document.getElementById("cameraSelect");
-    const manualFocusBox = document.getElementById("manualFocusBox");
-    const focusSlider = document.getElementById("focusSlider");
-    const btnAutoFocusReset = document.getElementById("btnAutoFocusReset");
-    const nativeCameraInput = document.getElementById("nativeCameraInput");
 
     let stream = null;
-    let videoTrack = null;
     let isScanning = false;
     let animationId = null;
-    let supportsHardwareZoom = false;
-    let currentZoom = 2.0; // เริ่มต้นที่ 2.0x เพื่อให้ถือห่าง 20-25 ซม. แล้วกล้องโฟกัสติดง่ายขึ้น
-    let torchOn = false;
 
-    let nativeDetector = null;
-    if ("BarcodeDetector" in window) {
-      try {
-        nativeDetector = new BarcodeDetector({ formats: ["qr_code"] });
-      } catch (e) {}
-    }
-
-    // เปิด/ปิดกล้องสด
     document.getElementById("btnToggleScan").addEventListener("click", async () => {
       if (!isScanning) {
-        const savedCamId = localStorage.getItem("cnc_preferred_cam_id") || "";
-        await startCamera(savedCamId);
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: { ideal: "environment" }, width: { ideal: 640 }, height: { ideal: 640 } }
+          });
+          video.srcObject = stream;
+          video.setAttribute("playsinline", true);
+          await video.play();
+
+          container.classList.remove("hidden");
+          btnText.innerText = "ปิดกล้อง";
+          isScanning = true;
+          requestAnimationFrame(scanQRCodeLoop);
+        } catch (err) {
+          alert("ไม่สามารถเปิดกล้องได้: " + err.message);
+        }
       } else {
         stopScanner();
       }
-    });
-
-    async function startCamera(deviceId = "") {
-      try {
-        if (stream) {
-          stream.getTracks().forEach(t => t.stop());
-        }
-
-        const videoConstraints = {
-          width: { ideal: 1920 },
-          height: { ideal: 1080 }
-        };
-
-        if (deviceId) {
-          videoConstraints.deviceId = { exact: deviceId };
-        } else {
-          videoConstraints.facingMode = { ideal: "environment" };
-        }
-
-        try {
-          stream = await navigator.mediaDevices.getUserMedia({ video: videoConstraints, audio: false });
-        } catch (fallbackErr) {
-          // หาก deviceId ที่เคยจำไว้ใช้งานไม่ได้ ให้กลับไปเปิดกล้องหลังมาตรฐาน
-          localStorage.removeItem("cnc_preferred_cam_id");
-          stream = await navigator.mediaDevices.getUserMedia({
-            video: { facingMode: { ideal: "environment" }, width: { ideal: 1920 }, height: { ideal: 1080 } },
-            audio: false
-          });
-        }
-
-        video.srcObject = stream;
-        video.setAttribute("playsinline", true);
-        await video.play();
-
-        videoTrack = stream.getVideoTracks()[0];
-        await populateCameraList(videoTrack);
-        setupCameraCapabilities(videoTrack);
-
-        scannerWrapper.classList.remove("hidden");
-        btnText.innerText = "ปิดกล้อง";
-        if (!isScanning) {
-          isScanning = true;
-          requestAnimationFrame(scanQRCodeLoop);
-        }
-      } catch (err) {
-        alert("ไม่สามารถเปิดกล้องสดได้: " + err.message + "\nแนะนำให้กดปุ่ม 'ถ่ายรูปสแกน (โหมดกล้องมือถือ)' แทนครับ");
-      }
-    }
-
-    // ดึงรายชื่อเลนส์กล้องหลังทั้งหมด เพื่อให้สลับหนีเลนส์ที่ไม่โฟกัสได้
-    async function populateCameraList(activeTrack) {
-      if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) return;
-      const devices = await navigator.mediaDevices.enumerateDevices();
-      const videoDevices = devices.filter(d => d.kind === "videoinput");
-
-      // กรองกล้องหน้าออก (ยกเว้นกรณีเครื่องมีกล้องเดียว)
-      let rearDevices = videoDevices.filter(d => !/front|user|facetime|ด้านหน้า/i.test(d.label));
-      if (rearDevices.length === 0) rearDevices = videoDevices;
-
-      if (rearDevices.length > 1) {
-        lensSelectorBox.classList.remove("hidden");
-        const activeSettings = activeTrack.getSettings ? activeTrack.getSettings() : {};
-        cameraSelect.innerHTML = "";
-        rearDevices.forEach((dev, idx) => {
-          const opt = document.createElement("option");
-          opt.value = dev.deviceId;
-          opt.textContent = dev.label || `เลนส์กล้องหลัง ${idx + 1}`;
-          if (activeSettings.deviceId && activeSettings.deviceId === dev.deviceId) {
-            opt.selected = true;
-          }
-          cameraSelect.appendChild(opt);
-        });
-      } else {
-        lensSelectorBox.classList.add("hidden");
-      }
-    }
-
-    cameraSelect.addEventListener("change", async (e) => {
-      const selectedId = e.target.value;
-      localStorage.setItem("cnc_preferred_cam_id", selectedId);
-      await startCamera(selectedId);
-    });
-
-    // ตั้งค่า Auto-focus, Manual Focus, Hardware Zoom และไฟฉาย
-    function setupCameraCapabilities(track) {
-      supportsHardwareZoom = false;
-      torchOn = false;
-      btnTorch.classList.add("hidden");
-      manualFocusBox.classList.add("hidden");
-
-      const caps = track.getCapabilities ? track.getCapabilities() : {};
-      const advancedConstraints = {};
-
-      // 1. บังคับ Continuous Auto-focus
-      if (caps.focusMode && caps.focusMode.includes("continuous")) {
-        advancedConstraints.focusMode = "continuous";
-      }
-
-      // 2. หากรองรับ Manual Focus Distance ให้เปิดแถบปรับระยะโฟกัสด้วยมือเผื่อออโต้โฟกัสไม่จับ
-      if (caps.focusMode && caps.focusMode.includes("manual") && caps.focusDistance) {
-        manualFocusBox.classList.remove("hidden");
-        focusSlider.min = caps.focusDistance.min || 0;
-        focusSlider.max = caps.focusDistance.max || 1;
-        focusSlider.step = caps.focusDistance.step || 0.01;
-        focusSlider.value = caps.focusDistance.min || 0;
-      }
-
-      // 3. ตั้งค่าระบบซูม
-      if ("zoom" in caps) {
-        supportsHardwareZoom = true;
-        const minZ = caps.zoom.min || 1;
-        const maxZ = Math.min(caps.zoom.max || 4, 5);
-        zoomSlider.min = minZ;
-        zoomSlider.max = maxZ;
-        zoomSlider.step = caps.zoom.step || 0.1;
-        currentZoom = Math.min(Math.max(2.0, minZ), maxZ);
-        zoomSlider.value = currentZoom;
-        advancedConstraints.zoom = currentZoom;
-        video.style.transform = "scale(1)";
-      } else {
-        zoomSlider.min = 1;
-        zoomSlider.max = 3.5;
-        zoomSlider.step = 0.25;
-        currentZoom = 2.0;
-        zoomSlider.value = currentZoom;
-      }
-
-      // 4. ไฟฉาย
-      if (caps.torch) {
-        btnTorch.classList.remove("hidden");
-      }
-
-      if (Object.keys(advancedConstraints).length > 0) {
-        track.applyConstraints({ advanced: [advancedConstraints] }).catch(() => {});
-      }
-
-      applyZoom(currentZoom);
-    }
-
-    // แตะหน้าจอกล้องเพื่อกระตุ้นมอเตอร์ Auto-Focus ใหม่ (แก้ปัญหาโฟกัสค้าง)
-    scannerContainer.addEventListener("click", async (e) => {
-      if (!videoTrack || e.target.closest("#btnTorch")) return;
-
-      // แสดงวงแหวนจุดโฟกัสบนหน้าจอ
-      const rect = scannerContainer.getBoundingClientRect();
-      const ring = document.createElement("div");
-      ring.className = "focus-ring";
-      ring.style.left = (e.clientX - rect.left) + "px";
-      ring.style.top = (e.clientY - rect.top) + "px";
-      scannerContainer.appendChild(ring);
-      setTimeout(() => ring.remove(), 650);
-
-      if (!videoTrack.getCapabilities) return;
-      const caps = videoTrack.getCapabilities();
-      if (!caps.focusMode) return;
-
-      try {
-        if (caps.focusMode.includes("single-shot")) {
-          await videoTrack.applyConstraints({ advanced: [{ focusMode: "single-shot" }] });
-          setTimeout(() => {
-            if (videoTrack && caps.focusMode.includes("continuous")) {
-              videoTrack.applyConstraints({ advanced: [{ focusMode: "continuous" }] }).catch(() => {});
-            }
-          }, 450);
-        } else if (caps.focusMode.includes("continuous")) {
-          await videoTrack.applyConstraints({ advanced: [{ focusMode: "continuous" }] });
-        }
-      } catch (err) {}
-    });
-
-    // ปรับระยะโฟกัสด้วยมือ (Manual Focus)
-    focusSlider.addEventListener("input", (e) => {
-      if (!videoTrack) return;
-      const dist = Number(e.target.value);
-      videoTrack.applyConstraints({
-        advanced: [{ focusMode: "manual", focusDistance: dist }]
-      }).catch(() => {});
-    });
-
-    btnAutoFocusReset.addEventListener("click", () => {
-      if (!videoTrack) return;
-      videoTrack.applyConstraints({
-        advanced: [{ focusMode: "continuous" }]
-      }).catch(() => {});
-    });
-
-    function applyZoom(zoomVal) {
-      currentZoom = Number(zoomVal);
-      zoomValueText.innerText = currentZoom.toFixed(1) + "x";
-
-      if (supportsHardwareZoom && videoTrack) {
-        videoTrack.applyConstraints({ advanced: [{ zoom: currentZoom }] }).catch(() => {});
-        video.style.transform = "scale(1)";
-      } else {
-        video.style.transform = `scale(${currentZoom})`;
-      }
-    }
-
-    zoomSlider.addEventListener("input", (e) => applyZoom(e.target.value));
-
-    btnTorch.addEventListener("click", () => {
-      if (!videoTrack) return;
-      torchOn = !torchOn;
-      videoTrack.applyConstraints({ advanced: [{ torch: torchOn }] }).catch(() => {});
-      btnTorch.className = torchOn
-        ? "absolute top-2.5 right-2.5 bg-yellow-400 text-slate-900 p-2 rounded-full border border-yellow-200 shadow z-10"
-        : "absolute top-2.5 right-2.5 bg-black/60 text-yellow-300 p-2 rounded-full border border-white/20 shadow z-10";
     });
 
     function stopScanner() {
       if (stream) {
         stream.getTracks().forEach(track => track.stop());
         stream = null;
-        videoTrack = null;
       }
       if (animationId) cancelAnimationFrame(animationId);
-      scannerWrapper.classList.add("hidden");
+      container.classList.add("hidden");
       btnText.innerText = "เปิดกล้องสแกน";
       isScanning = false;
     }
 
-    async function scanQRCodeLoop() {
+    function scanQRCodeLoop() {
       if (video.readyState === video.HAVE_ENOUGH_DATA && isScanning) {
-        const vw = video.videoWidth;
-        const vh = video.videoHeight;
-
-        const cropFactor = supportsHardwareZoom ? 0.8 : Math.min(0.9, 0.95 / currentZoom);
-        const minDim = Math.min(vw, vh);
-        const cropSize = Math.max(240, Math.floor(minDim * cropFactor));
-        const startX = Math.floor((vw - cropSize) / 2);
-        const startY = Math.floor((vh - cropSize) / 2);
-
-        // รักษาความละเอียดพิกเซลจริงไว้สูงสุดถึง 1000px เพื่อไม่ให้เม็ด QR เล็กๆ แตกเบลอ
-        const targetSize = Math.min(cropSize, 1000);
-        canvasElement.width = targetSize;
-        canvasElement.height = targetSize;
-
-        canvas.drawImage(video, startX, startY, cropSize, cropSize, 0, 0, targetSize, targetSize);
-
-        // 1. สแกนด้วย Native BarcodeDetector
-        if (nativeDetector) {
-          try {
-            const barcodes = await nativeDetector.detect(canvasElement);
-            if (barcodes.length > 0 && barcodes[0].rawValue) {
-              handleScannedQR(barcodes[0].rawValue);
-              stopScanner();
-              return;
-            }
-          } catch (e) {}
-        }
-
-        // 2. สแกนด้วย jsQR
-        const imageData = canvas.getImageData(0, 0, targetSize, targetSize);
+        canvasElement.height = video.videoHeight;
+        canvasElement.width = video.videoWidth;
+        canvas.drawImage(video, 0, 0, canvasElement.width, canvasElement.height);
+        
+        const imageData = canvas.getImageData(0, 0, canvasElement.width, canvasElement.height);
         const code = jsQR(imageData.data, imageData.width, imageData.height, {
-          inversionAttempts: "attemptBoth",
+          inversionAttempts: "dontInvert",
         });
 
         if (code && code.data) {
@@ -660,94 +378,91 @@
           return;
         }
       }
-
       if (isScanning) {
         animationId = requestAnimationFrame(scanQRCodeLoop);
       }
     }
 
-    // โหมดสำรอง: ถอดรหัสจากภาพถ่ายกล้องมือถือแท้ (รองรับโหมด Macro ของเครื่อง 100%)
-    nativeCameraInput.addEventListener("change", async (e) => {
-      const file = e.target.files && e.target.files[0];
-      if (!file) return;
+    // ตัวช่วยช่อง Technician (พิมพ์ตัวอักษรและตัวเลขได้อิสระทุกภาษา ไม่บล็อกปุ่มคีย์บอร์ด)
+    const techIdInput = document.getElementById("techId");
+    const btnPrefixV = document.getElementById("btnPrefixV");
 
-      stopScanner();
-      showBadge("กำลังอ่าน QR Code จากภาพถ่าย...", false);
+    function updatePrefixVBtnStyle() {
+      const hasV = techIdInput.value.trim().toUpperCase().startsWith("V");
+      btnPrefixV.className = hasV
+        ? "absolute right-1.5 bg-blue-600 text-white border border-blue-600 font-bold text-[10px] px-2 py-1 rounded-lg transition active:scale-95"
+        : "absolute right-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 font-bold text-[10px] px-2 py-1 rounded-lg transition active:scale-95";
+      btnPrefixV.innerText = hasV ? "V✓" : "+V";
+    }
 
-      try {
-        const bitmap = await createImageBitmap(file);
-
-        // 1. ลองใช้ Native BarcodeDetector กับภาพความละเอียดเต็มก่อน
-        if (nativeDetector) {
-          try {
-            const barcodes = await nativeDetector.detect(bitmap);
-            if (barcodes.length > 0 && barcodes[0].rawValue) {
-              handleScannedQR(barcodes[0].rawValue);
-              nativeCameraInput.value = "";
-              return;
-            }
-          } catch (err) {}
-        }
-
-        // 2. ใช้ jsQR ลองสแกนทั้งแบบเต็มใบ และแบบซูมเจาะตรงกลางภาพ (กรณีป้ายเล็ก)
-        const regions = [
-          { sx: 0, sy: 0, sw: bitmap.width, sh: bitmap.height }, // เต็มภาพ
-          { sx: bitmap.width * 0.2, sy: bitmap.height * 0.2, sw: bitmap.width * 0.6, sh: bitmap.height * 0.6 }, // ซูมกลางภาพ
-          { sx: bitmap.width * 0.3, sy: bitmap.height * 0.3, sw: bitmap.width * 0.4, sh: bitmap.height * 0.4 }  // ซูมกลางภาพพิเศษ
-        ];
-
-        for (const r of regions) {
-          const maxSide = 1400;
-          const scale = Math.min(1, maxSide / Math.max(r.sw, r.sh));
-          const w = Math.floor(r.sw * scale);
-          const h = Math.floor(r.sh * scale);
-
-          canvasElement.width = w;
-          canvasElement.height = h;
-          canvas.drawImage(bitmap, r.sx, r.sy, r.sw, r.sh, 0, 0, w, h);
-
-          const imgData = canvas.getImageData(0, 0, w, h);
-          const code = jsQR(imgData.data, w, h, { inversionAttempts: "attemptBoth" });
-          if (code && code.data) {
-            handleScannedQR(code.data);
-            nativeCameraInput.value = "";
-            return;
-          }
-        }
-
-        showBadge("ไม่พบ QR Code ในภาพ กรุณาถ่ายให้อยู่กลางภาพและชัดเจนขึ้น", true);
-      } catch (err) {
-        showBadge("ไม่สามารถอ่านไฟล์รูปภาพได้: " + err.message, true);
-      }
-      nativeCameraInput.value = "";
+    techIdInput.addEventListener("input", () => {
+      updatePrefixVBtnStyle();
     });
 
-    function showBadge(msg, isError = false) {
-      const badge = document.getElementById("scanBadge");
-      const badgeText = document.getElementById("scanBadgeText");
-      badge.classList.remove("hidden");
-      badge.className = isError
-        ? "mt-3 p-2.5 bg-rose-50 border border-rose-200 text-rose-800 rounded-xl text-xs flex items-center gap-2"
-        : "mt-3 p-2.5 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-xs flex items-center gap-2";
-      badgeText.innerText = msg;
+    techIdInput.addEventListener("blur", () => {
+      techIdInput.value = techIdInput.value.trim().toUpperCase();
+      updatePrefixVBtnStyle();
+    });
+
+    btnPrefixV.addEventListener("click", () => {
+      const val = techIdInput.value.trim();
+      if (val.toUpperCase().startsWith("V")) {
+        techIdInput.value = val.slice(1);
+      } else {
+        techIdInput.value = "V" + val;
+      }
+      updatePrefixVBtnStyle();
+      techIdInput.focus();
+    });
+
+    // ตัวช่วยช่อง Part No. และ Lot No. (พิมพ์/แก้ไขเองได้ตลอดเวลา + ปุ่มล้างค่า)
+    const partNoInput = document.getElementById("partNo");
+    const lotNoInput = document.getElementById("lotNo");
+    const btnClearPart = document.getElementById("btnClearPart");
+    const btnClearLot = document.getElementById("btnClearLot");
+
+    function syncClearButtons() {
+      btnClearPart.classList.toggle("hidden", !partNoInput.value);
+      btnClearLot.classList.toggle("hidden", !lotNoInput.value);
     }
+
+    [partNoInput, lotNoInput].forEach(el => {
+      el.addEventListener("input", syncClearButtons);
+      el.addEventListener("blur", () => {
+        el.value = el.value.trim().toUpperCase();
+        syncClearButtons();
+      });
+    });
+
+    btnClearPart.addEventListener("click", () => {
+      partNoInput.value = "";
+      syncClearButtons();
+      partNoInput.focus();
+    });
+
+    btnClearLot.addEventListener("click", () => {
+      lotNoInput.value = "";
+      syncClearButtons();
+      lotNoInput.focus();
+    });
 
     // ตัวอย่าง QR Code: 3703-K350-0000,K10-2605-014,0,LA
     function handleScannedQR(text) {
       const parts = text.split(",");
       if (parts.length >= 2) {
-        document.getElementById("partNo").value = parts[0].trim();
-        document.getElementById("lotNo").value = parts[1].trim();
+        partNoInput.value = parts[0].trim().toUpperCase();
+        lotNoInput.value = parts[1].trim().toUpperCase();
       } else {
-        document.getElementById("lotNo").value = text.trim();
+        lotNoInput.value = text.trim().toUpperCase();
       }
-      showBadge("สแกนสำเร็จ: Part=" + document.getElementById("partNo").value + " | Lot=" + document.getElementById("lotNo").value, false);
-      if (navigator.vibrate) navigator.vibrate(100);
+      syncClearButtons();
+      const badge = document.getElementById("scanBadge");
+      badge.classList.remove("hidden");
+      document.getElementById("scanBadgeText").innerText = "สแกนสำเร็จ (แก้ไขต่อได้): Part=" + partNoInput.value + " | Lot=" + lotNoInput.value;
+      navigator.vibrate && navigator.vibrate(100);
     }
 
-    // =========================================================================
     // 2. คำนวณยอดชิ้นงาน Re-setting อัตโนมัติ
-    // =========================================================================
     function calcTotalSetting() {
       const bCut = Number(document.getElementById("basketCut").value) || 0;
       const bFull = Number(document.getElementById("basketFull").value) || 0;
@@ -761,21 +476,15 @@
       const verifyBadge = document.getElementById("verifyResultBadge");
       const verifyText = document.getElementById("verifyText");
       const notEqualBox = document.getElementById("notEqualBox");
-      const notEqualReason = document.getElementById("notEqualReason");
-      const notEqualAuditor = document.getElementById("notEqualAuditor");
 
       if (totalA === monitorB) {
         verifyBadge.className = "p-2.5 rounded-xl text-xs font-semibold flex items-center justify-between bg-emerald-100 text-emerald-800 border border-emerald-300";
         verifyText.innerText = "เท่ากัน";
         notEqualBox.classList.add("hidden");
-        notEqualReason.required = false;
-        notEqualAuditor.required = false;
       } else {
         verifyBadge.className = "p-2.5 rounded-xl text-xs font-semibold flex items-center justify-between bg-rose-100 text-rose-800 border border-rose-300";
         verifyText.innerText = "ไม่เท่ากัน";
         notEqualBox.classList.remove("hidden");
-        notEqualReason.required = true;
-        notEqualAuditor.required = true;
       }
     }
 
@@ -800,11 +509,17 @@
       document.getElementById("c9").value = "-";
     });
 
-    // =========================================================================
     // 3. Submit Form ส่งข้อมูลข้ามโดเมนเข้า Google Sheets (CORS Safe)
-    // =========================================================================
     document.getElementById("cncAuditForm").addEventListener("submit", function(e) {
       e.preventDefault();
+
+      const partVal = partNoInput.value.trim();
+      const lotVal = lotNoInput.value.trim();
+      if (!partVal || !lotVal) {
+        const ok = confirm("ยังไม่ได้กรอก Part No. หรือ Lot No. ให้ครบ\nต้องการบันทึกข้อมูลโดยเว้นว่างไว้หรือไม่?");
+        if (!ok) return;
+      }
+
       const btn = document.getElementById("btnSubmit");
       btn.disabled = true;
       btn.innerHTML = `<i data-lucide="loader" class="w-4 h-4 animate-spin"></i> บันทึกข้อมูล...`;
@@ -821,9 +536,9 @@
 
       const payload = {
         auditType: document.getElementById("auditType").value,
-        techId: document.getElementById("techId").value,
-        partNo: document.getElementById("partNo").value,
-        lotNo: document.getElementById("lotNo").value,
+        techId: techIdInput.value.trim().toUpperCase(),
+        partNo: partVal,
+        lotNo: lotVal,
         finishTime: document.getElementById("finishTime").value,
         c1_1: document.getElementById("c1_1").value,
         c1_2: document.getElementById("c1_2").value,
@@ -850,16 +565,16 @@
         monitorB: monitorB,
         verifyResult: isEqual ? "เท่ากัน" : "ไม่เท่ากัน",
         discardStatus: document.getElementById("discardStatus").value,
-        auditorId: document.getElementById("auditorId").value,
+        auditorId: document.getElementById("auditorId").value.trim().toUpperCase(),
         notEqualReason: !isEqual ? document.getElementById("notEqualReason").value : "",
         notEqualDiscard: !isEqual ? document.getElementById("notEqualDiscard").value : "",
-        notEqualAuditor: !isEqual ? document.getElementById("notEqualAuditor").value : ""
+        notEqualAuditor: !isEqual ? document.getElementById("notEqualAuditor").value.trim().toUpperCase() : ""
       };
 
       fetch(APPS_SCRIPT_URL, {
         method: "POST",
         mode: "no-cors",
-        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
       })
       .then(() => {
@@ -868,8 +583,10 @@
         btn.innerHTML = `<i data-lucide="send" class="w-4 h-4"></i> บันทึกข้อมูลเข้า Google Sheets`;
         lucide.createIcons();
         document.getElementById("cncAuditForm").reset();
-        calcTotalSetting(); // รีเซ็ตยอดคำนวณและสถานะเปรียบเทียบกลับเป็นเริ่มต้น
         document.getElementById("scanBadge").classList.add("hidden");
+        updatePrefixVBtnStyle();
+        syncClearButtons();
+        calcTotalSetting();
       })
       .catch(err => {
         alert("เกิดข้อผิดพลาด: " + err);
